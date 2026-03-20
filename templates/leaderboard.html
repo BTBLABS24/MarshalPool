@@ -136,6 +136,7 @@ async function refresh() {
         }
 
         document.getElementById('last-updated').textContent = new Date(data.last_updated).toLocaleTimeString();
+        if (data.viewers) document.getElementById('viewers').textContent = data.viewers;
     } catch (err) {
         console.error('Refresh failed:', err);
     }

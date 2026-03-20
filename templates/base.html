@@ -19,6 +19,8 @@
     </main>
     <footer class="container">
         <p>
+            <span class="viewers-badge"><span class="viewer-dot"></span> <span id="viewers">{{ viewers }}</span> watching</span>
+            &middot;
             Last updated: <span id="last-updated">{{ last_updated.strftime('%I:%M:%S %p') if last_updated else 'Loading...' }}</span>
             &middot; Auto-refreshes every 60s
         </p>

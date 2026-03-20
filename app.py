@@ -3,7 +3,7 @@
 import os
 import time
 
-from flask import Flask, render_template, jsonify, abort
+from flask import Flask, render_template, jsonify, abort, request
 
 from data_loader import load_rosters
 from espn_client import ESPNClient
@@ -18,6 +18,22 @@ POLL_INTERVAL = 30  # seconds between ESPN API refreshes
 rosters = load_rosters(DATA_PATH)
 espn = ESPNClient()
 _last_poll_time = 0
+
+# Visitor tracking: ip -> last_seen timestamp
+_visitors: dict[str, float] = {}
+VISITOR_TTL = 120  # consider "live" if seen in last 2 minutes
+
+
+def track_visitor() -> int:
+    """Record this visitor and return current live count."""
+    now = time.time()
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr) or "unknown"
+    _visitors[ip] = now
+    # Prune stale entries
+    stale = [k for k, v in _visitors.items() if now - v > VISITOR_TTL]
+    for k in stale:
+        del _visitors[k]
+    return len(_visitors)
 
 
 def ensure_fresh():
@@ -35,6 +51,7 @@ def ensure_fresh():
 @app.route("/")
 def leaderboard():
     ensure_fresh()
+    viewers = track_visitor()
     states = espn.get_team_states()
     entries = compute_leaderboard(rosters, states)
     highlights = compute_highlights(entries)
@@ -43,12 +60,14 @@ def leaderboard():
         entries=entries,
         highlights=highlights,
         last_updated=espn.last_poll,
+        viewers=viewers,
     )
 
 
 @app.route("/participant/<name>")
 def participant_detail(name):
     ensure_fresh()
+    viewers = track_visitor()
     if name not in rosters:
         abort(404)
     states = espn.get_team_states()
@@ -61,12 +80,14 @@ def participant_detail(name):
         entry=entry,
         participant=rosters[name],
         last_updated=espn.last_poll,
+        viewers=viewers,
     )
 
 
 @app.route("/api/leaderboard")
 def api_leaderboard():
     ensure_fresh()
+    viewers = track_visitor()
     states = espn.get_team_states()
     entries = compute_leaderboard(rosters, states)
     highlights = compute_highlights(entries)
@@ -74,6 +95,7 @@ def api_leaderboard():
         entries=entries,
         highlights=highlights,
         last_updated=espn.last_poll.isoformat() if espn.last_poll else None,
+        viewers=viewers,
     )
 
 

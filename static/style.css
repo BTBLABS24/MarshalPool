@@ -236,6 +236,17 @@ footer {
     color: var(--text-muted);
 }
 
+.viewers-badge { font-weight: 600; color: var(--alive); }
+.viewer-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--alive);
+    border-radius: 50%;
+    vertical-align: middle;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
 /* === Mobile === */
 @media (max-width: 640px) {
     .highlights {
