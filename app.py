@@ -1,9 +1,7 @@
 """Flask application for the Marshall Gramm NCAA Pool Tracker."""
 
 import os
-import threading
 import time
-from datetime import datetime
 
 from flask import Flask, render_template, jsonify, abort
 
@@ -15,29 +13,28 @@ app = Flask(__name__)
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "NCAA_2026_Teams.xlsx")
 
-rosters = None
-espn = None
+POLL_INTERVAL = 30  # seconds between ESPN API refreshes
+
+rosters = load_rosters(DATA_PATH)
+espn = ESPNClient()
+_last_poll_time = 0
 
 
-def init_app():
-    global rosters, espn
-    rosters = load_rosters(DATA_PATH)
-    espn = ESPNClient()
-    espn.poll()
-    print(f"Loaded {len(rosters)} participants, {len(espn.team_states)} teams tracked")
-
-
-def poll_loop():
-    while True:
-        time.sleep(30)
+def ensure_fresh():
+    """Re-poll ESPN if data is stale. Called on each request."""
+    global _last_poll_time
+    now = time.time()
+    if now - _last_poll_time >= POLL_INTERVAL:
         try:
             espn.poll()
         except Exception as e:
             print(f"ESPN poll error: {e}")
+        _last_poll_time = time.time()
 
 
 @app.route("/")
 def leaderboard():
+    ensure_fresh()
     states = espn.get_team_states()
     entries = compute_leaderboard(rosters, states)
     highlights = compute_highlights(entries)
@@ -51,6 +48,7 @@ def leaderboard():
 
 @app.route("/participant/<name>")
 def participant_detail(name):
+    ensure_fresh()
     if name not in rosters:
         abort(404)
     states = espn.get_team_states()
@@ -68,6 +66,7 @@ def participant_detail(name):
 
 @app.route("/api/leaderboard")
 def api_leaderboard():
+    ensure_fresh()
     states = espn.get_team_states()
     entries = compute_leaderboard(rosters, states)
     highlights = compute_highlights(entries)
@@ -78,9 +77,7 @@ def api_leaderboard():
     )
 
 
-init_app()
-t = threading.Thread(target=poll_loop, daemon=True)
-t.start()
+print(f"Loaded {len(rosters)} participants")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
