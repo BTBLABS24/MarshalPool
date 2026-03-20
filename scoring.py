@@ -17,6 +17,8 @@ def compute_leaderboard(
         max_possible = 0
         teams_detail = []
 
+        dollars_alive = 0
+
         for pick in p.picks:
             state = team_states.get(pick.team)
             if state is None:
@@ -24,6 +26,7 @@ def compute_leaderboard(
                 alive += 1
                 pts = 0
                 mx = MAX_POINTS
+                dollars_alive += pick.cost
             elif state.status == "eliminated":
                 eliminated += 1
                 pts = state.points_earned
@@ -32,6 +35,7 @@ def compute_leaderboard(
                 alive += 1
                 pts = state.points_earned
                 mx = state.max_remaining
+                dollars_alive += pick.cost
 
             points += pts
             max_possible += pts + mx
@@ -57,6 +61,7 @@ def compute_leaderboard(
             "eliminated": eliminated,
             "max_possible": max_possible,
             "num_teams": len(p.picks),
+            "dollars_alive": dollars_alive,
             "total_cost": p.total_cost,
             "teams": teams_detail,
         })
@@ -79,26 +84,8 @@ def compute_highlights(entries: list[dict]) -> dict:
     if not entries:
         return {}
 
-    # Current leader: highest points
     leader = entries[0]
-
-    # Projected leader: highest max_possible (who could end up with most points)
-    projected = max(entries, key=lambda e: e["max_possible"])
-
-    # Longshot: person with fewest alive teams but still has a viable max_possible
-    # among those in the top half of max_possible
-    alive_entries = [e for e in entries if e["alive"] > 0]
-    if alive_entries:
-        median_max = sorted(
-            [e["max_possible"] for e in alive_entries]
-        )[len(alive_entries) // 2]
-        viable = [e for e in alive_entries if e["max_possible"] >= median_max]
-        if viable:
-            longshot = min(viable, key=lambda e: e["alive"])
-        else:
-            longshot = min(alive_entries, key=lambda e: e["alive"])
-    else:
-        longshot = entries[-1]
+    projected = max(entries, key=lambda e: e["dollars_alive"])
 
     return {
         "leader": {
@@ -108,15 +95,8 @@ def compute_highlights(entries: list[dict]) -> dict:
         },
         "projected": {
             "name": projected["name"],
-            "max_possible": projected["max_possible"],
+            "dollars_alive": projected["dollars_alive"],
             "points": projected["points"],
             "alive": projected["alive"],
-        },
-        "longshot": {
-            "name": longshot["name"],
-            "points": longshot["points"],
-            "alive": longshot["alive"],
-            "max_possible": longshot["max_possible"],
-            "num_teams": longshot["num_teams"],
         },
     }

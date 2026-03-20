@@ -61,7 +61,7 @@ header {
 /* === Highlight Cards === */
 .highlights {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -75,8 +75,7 @@ header {
 }
 
 .card-leader { border-top-color: #ffd33d; }
-.card-projected { border-top-color: #0366d6; }
-.card-longshot { border-top-color: #6f42c1; }
+.card-projected { border-top-color: #28a745; }
 
 .card-label {
     font-size: 0.7rem;
@@ -145,12 +144,19 @@ tr:hover { background: var(--row-hover); }
 tr.row-live { background: var(--row-live); }
 
 .col-rank { width: 40px; text-align: center; color: var(--text-muted); }
-.col-pts, .col-alive, .col-elim, .col-max { text-align: center; }
+.col-pts, .col-alive, .col-elim, .col-max, .col-dollars { text-align: center; }
 .col-pts { font-weight: 700; }
 
 .col-name a {
     font-weight: 600;
 }
+
+/* === Sortable Headers === */
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text); }
+th.sortable::after { content: ' \2195'; font-size: 0.7em; opacity: 0.4; }
+th.sort-asc::after { content: ' \2191'; opacity: 1; }
+th.sort-desc::after { content: ' \2193'; opacity: 1; }
 
 /* === Live Dot === */
 .live-dot {
