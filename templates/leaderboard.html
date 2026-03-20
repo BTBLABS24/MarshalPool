@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Highlight Cards -->
+<div class="highlights">
+    <div class="card card-leader">
+        <div class="card-label">Current Leader</div>
+        <div class="card-name">{{ highlights.leader.name }}</div>
+        <div class="card-stat">{{ highlights.leader.points }} pts</div>
+        <div class="card-sub">{{ highlights.leader.alive }} teams alive</div>
+    </div>
+    <div class="card card-projected">
+        <div class="card-label">Projected Leader</div>
+        <div class="card-name">{{ highlights.projected.name }}</div>
+        <div class="card-stat">{{ highlights.projected.max_possible }} max pts</div>
+        <div class="card-sub">{{ highlights.projected.points }} current &middot; {{ highlights.projected.alive }} alive</div>
+    </div>
+    <div class="card card-longshot">
+        <div class="card-label">Longshot</div>
+        <div class="card-name">{{ highlights.longshot.name }}</div>
+        <div class="card-stat">{{ highlights.longshot.max_possible }} max pts</div>
+        <div class="card-sub">{{ highlights.longshot.points }} current &middot; {{ highlights.longshot.alive }}/{{ highlights.longshot.num_teams }} alive</div>
+    </div>
+</div>
+
+<!-- Leaderboard Table -->
+<div class="table-wrap">
+    <table id="leaderboard">
+        <thead>
+            <tr>
+                <th class="col-rank">#</th>
+                <th class="col-name">Name</th>
+                <th class="col-pts">Pts</th>
+                <th class="col-alive">Alive</th>
+                <th class="col-elim hide-mobile">Elim</th>
+                <th class="col-max">Max</th>
+            </tr>
+        </thead>
+        <tbody id="lb-body">
+            {% for e in entries %}
+            <tr class="{% if e.teams | selectattr('status', 'equalto', 'playing') | list %}row-live{% endif %}">
+                <td class="col-rank">{{ e.rank }}</td>
+                <td class="col-name">
+                    <a href="/participant/{{ e.name | urlencode }}">{{ e.name }}</a>
+                    {% set playing = e.teams | selectattr('status', 'equalto', 'playing') | list %}
+                    {% if playing %}<span class="live-dot" title="Live game"></span>{% endif %}
+                </td>
+                <td class="col-pts">{{ e.points }}</td>
+                <td class="col-alive">{{ e.alive }}</td>
+                <td class="col-elim hide-mobile">{{ e.eliminated }}</td>
+                <td class="col-max">{{ e.max_possible }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function refresh() {
+    try {
+        const resp = await fetch('/api/leaderboard');
+        const data = await resp.json();
+        const tbody = document.getElementById('lb-body');
+        let html = '';
+        for (const e of data.entries) {
+            const hasLive = e.teams.some(t => t.status === 'playing');
+            html += `<tr class="${hasLive ? 'row-live' : ''}">`;
+            html += `<td class="col-rank">${e.rank}</td>`;
+            html += `<td class="col-name"><a href="/participant/${encodeURIComponent(e.name)}">${e.name}</a>`;
+            if (hasLive) html += ' <span class="live-dot" title="Live game"></span>';
+            html += `</td>`;
+            html += `<td class="col-pts">${e.points}</td>`;
+            html += `<td class="col-alive">${e.alive}</td>`;
+            html += `<td class="col-elim hide-mobile">${e.eliminated}</td>`;
+            html += `<td class="col-max">${e.max_possible}</td>`;
+            html += `</tr>`;
+        }
+        tbody.innerHTML = html;
+
+        // Update highlights
+        const h = data.highlights;
+        const cards = document.querySelectorAll('.card');
+        if (cards.length >= 3) {
+            cards[0].querySelector('.card-name').textContent = h.leader.name;
+            cards[0].querySelector('.card-stat').textContent = h.leader.points + ' pts';
+            cards[0].querySelector('.card-sub').textContent = h.leader.alive + ' teams alive';
+            cards[1].querySelector('.card-name').textContent = h.projected.name;
+            cards[1].querySelector('.card-stat').textContent = h.projected.max_possible + ' max pts';
+            cards[1].querySelector('.card-sub').textContent = h.projected.points + ' current \u00b7 ' + h.projected.alive + ' alive';
+            cards[2].querySelector('.card-name').textContent = h.longshot.name;
+            cards[2].querySelector('.card-stat').textContent = h.longshot.max_possible + ' max pts';
+            cards[2].querySelector('.card-sub').textContent = h.longshot.points + ' current \u00b7 ' + h.longshot.alive + '/' + h.longshot.num_teams + ' alive';
+        }
+
+        document.getElementById('last-updated').textContent = new Date(data.last_updated).toLocaleTimeString();
+    } catch (err) {
+        console.error('Refresh failed:', err);
+    }
+}
+setInterval(refresh, 60000);
+</script>
+{% endblock %}

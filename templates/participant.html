@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ entry.name }} - Gramm Pool 2026{% endblock %}
+
+{% block content %}
+<div class="participant-header">
+    <a href="/" class="back-link">&larr; Leaderboard</a>
+    <h1>{{ entry.name }}</h1>
+    <div class="participant-summary">
+        <span class="badge badge-pts">{{ entry.points }} pts</span>
+        <span class="badge badge-rank">Rank #{{ entry.rank }}</span>
+        <span class="badge badge-max">{{ entry.max_possible }} max</span>
+    </div>
+    <p class="participant-meta">
+        {{ entry.num_teams }} teams &middot;
+        ${{ entry.total_cost }} spent &middot;
+        {{ entry.alive }} alive &middot;
+        {{ entry.eliminated }} eliminated
+    </p>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Team</th>
+                <th>Seed</th>
+                <th class="hide-mobile">Cost</th>
+                <th>Status</th>
+                <th>Pts</th>
+                <th>Max Left</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in entry.teams | sort(attribute='seed') %}
+            <tr>
+                <td>{{ t.team }}</td>
+                <td>{{ t.seed }}</td>
+                <td class="hide-mobile">${{ t.cost }}</td>
+                <td>
+                    {% if t.status == 'playing' %}
+                        <span class="status-playing">
+                            {{ t.current_score }}-{{ t.opponent_score }}
+                            <span class="live-dot"></span>
+                            <span class="game-detail">{{ t.game_detail }}</span>
+                        </span>
+                    {% elif t.status == 'eliminated' %}
+                        <span class="status-eliminated">Out</span>
+                    {% elif t.status == 'alive' %}
+                        <span class="status-alive">Alive</span>
+                    {% else %}
+                        <span class="status-scheduled">Scheduled</span>
+                    {% endif %}
+                </td>
+                <td>{{ t.points }}</td>
+                <td>{{ t.max_remaining }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh participant page too
+setInterval(() => location.reload(), 60000);
+</script>
+{% endblock %}
